@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-dev
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: grafana-dev
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: grafana-dev
+      name: grafana-dev
+    spec:
+      containers:
+      - args:
+        - -config=/etc/grafana/grafana.ini
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              key: GF_SECURITY_ADMIN_USER
+              name: grafana-dev-admin-credentials
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: GF_SECURITY_ADMIN_PASSWORD
+              name: grafana-dev-admin-credentials
+        image: registry.redhat.io/rhacm2/acm-grafana-rhel9@sha256:2668ab8e0b48b070d75690e1c4a423f9e47a6cf3435abb700a70b26415029758
+        imagePullPolicy: IfNotPresent
+        name: grafana-dev
+        ports:
+        - containerPort: 3000
+          name: grafana-http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 1
+          httpGet:
+            path: /api/health
+            port: 3000
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 4m
+            memory: 100Mi
+        securityContext:
+          privileged: false
+          readOnlyRootFilesystem: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/grafana/
+          name: grafana-dev-ini
+        - mountPath: /var/lib/grafana
+          name: grafana-data
+        - mountPath: /var/log/grafana
+          name: grafana-logs
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccount: grafana-dev
+      serviceAccountName: grafana-dev
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: grafana-dev-ini
+        name: grafana-dev-ini
+      - emptyDir: {}
+        name: grafana-logs
+      - emptyDir: {}
+        name: grafana-data

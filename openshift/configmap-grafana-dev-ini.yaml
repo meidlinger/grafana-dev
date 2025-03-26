@@ -1,0 +1,21 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: grafana-dev-ini
+data:
+  grafana.ini: |+
+    [auth]
+    disable_login_form = false
+
+    [dashboards]
+    versions_to_keep = 20
+
+    [log]
+    mode = console
+
+    [paths]
+    data = /var/lib/grafana
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning/
+
